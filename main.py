@@ -9,6 +9,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
 from sklearn.metrics import precision_score, recall_score
+import random
 
 def main():
 	
@@ -19,21 +20,40 @@ def main():
 	@st.cache(persist=True)
 	def load_data():
 		df=pd.read_csv('dataset.csv')
+		#df.Outcome = df.Outcome.astype(int)
+		#print(df.dtypes)
+		for i in range(487):
+
+			new_row = {'Pregnancies': df['Pregnancies'].mean()+random.randint(-2,2), 'Glucose':df['Glucose'].mean()+random.randint(-5,5),
+			 'BloodPressure':df['BloodPressure'].mean()+random.randint(-2,2),
+			 'SkinThickness':df['SkinThickness'].mean()+random.randint(-2,2),
+			 'Insulin':df['Insulin'].mean()+random.randint(-2,2),
+			 'DiabetesPedigreeFunction':df['DiabetesPedigreeFunction'].mean()+random.uniform(-0.1,0.1),
+			 'Age':df['Age'].mean()+random.randint(-5,5),
+			 'Outcome':1.0}
+			df = df.append(new_row, ignore_index=True)
+
 		df.fillna(df.mean(),inplace=True)
 		df.Outcome = df.Outcome.astype(int)
+		
 		return df
 
+
 	df=load_data()
+	
+	print(df.isnull().any().any())
+	print(df['Outcome'].value_counts())
+
 	if  st.button("Show dataset", key='show df'):
 		st.write(df)
-		print(df.dtypes)
+		
 
 
 	@st.cache(persist=True)
 	def split(df):
 		y = df['Outcome']
 		x=df.drop(columns=['Outcome'])
-		x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=0)
+		x_train, x_test, y_train, y_test = train_test_split(x, y, stratify = y, test_size = 0.3)
 		return x_train, x_test, y_train, y_test
 
 
