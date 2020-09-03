@@ -10,6 +10,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
 from sklearn.metrics import precision_score, recall_score
 import random
+import statsmodels.api as sm
 
 def main():
 	
@@ -20,16 +21,17 @@ def main():
 	@st.cache(persist=True)
 	def load_data():
 		df=pd.read_csv('dataset.csv')
-		#df.Outcome = df.Outcome.astype(int)
-		#print(df.dtypes)
-		for i in range(487):
+		val=df['Outcome'].value_counts()
+		
 
-			new_row = {'Pregnancies': df['Pregnancies'].mean()+random.randint(-2,2), 'Glucose':df['Glucose'].mean()+random.randint(-5,5),
-			 'BloodPressure':df['BloodPressure'].mean()+random.randint(-2,2),
-			 'SkinThickness':df['SkinThickness'].mean()+random.randint(-2,2),
-			 'Insulin':df['Insulin'].mean()+random.randint(-2,2),
-			 'DiabetesPedigreeFunction':df['DiabetesPedigreeFunction'].mean()+random.uniform(-0.1,0.1),
-			 'Age':df['Age'].mean()+random.randint(-5,5),
+		for i in range(val[0]-val[1]+1):
+
+			new_row = {'Pregnancies': df[df['Outcome']==1]['Pregnancies'].mean()+random.randint(-2,2), 'Glucose':df[df['Outcome']==1]['Glucose'].mean()+random.randint(-5,5),
+			 'BloodPressure':df[df['Outcome']==1]['BloodPressure'].mean()+random.randint(-2,2),
+			 'SkinThickness':df[df['Outcome']==1]['SkinThickness'].mean()+random.randint(-2,2),
+			 'Insulin':df[df['Outcome']==1]['Insulin'].mean()+random.randint(-2,2),
+			 'DiabetesPedigreeFunction':df[df['Outcome']==1]['DiabetesPedigreeFunction'].mean()+random.uniform(-0.1,0.1),
+			 'Age':df[df['Outcome']==1]['Age'].mean()+random.randint(-5,5),
 			 'Outcome':1.0}
 			df = df.append(new_row, ignore_index=True)
 
@@ -42,7 +44,7 @@ def main():
 	df=load_data()
 	
 	print(df.isnull().any().any())
-	print(df['Outcome'].value_counts())
+	
 
 	if  st.button("Show dataset", key='show df'):
 		st.write(df)
@@ -140,6 +142,16 @@ def main():
 			st.write("Precision: ", precision_score(y_test, y_pred, labels=class_names).round(2))
 			st.write("Recall: ", recall_score(y_test, y_pred, labels=class_names).round(2))
 			plot_metrics(metrics)
+
+
+	st.sidebar.subheader('Hypothesis testing for Logistic Regression')
+	if st.sidebar.button('Test'):
+		logmodel=sm.GLM(df['Outcome'],sm.add_constant(df.drop(columns=['Outcome'])),family=sm.families.Binomial())
+		summary=logmodel.fit().summary()
+		print(summary)
+
+
+
 
 
 
