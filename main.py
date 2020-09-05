@@ -10,7 +10,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import plot_confusion_matrix, plot_roc_curve, plot_precision_recall_curve
 from sklearn.metrics import precision_score, recall_score
 import random
+from sklearn.metrics import roc_curve, auc
 import statsmodels.api as sm
+from matplotlib.legend_handler import HandlerLine2D
+import matplotlib 
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 
 def main():
 	
@@ -134,7 +139,7 @@ def main():
 		metrics = st.sidebar.multiselect("What metrics to plot?", ('Confusion Matrix', 'ROC Curve', 'Precision-Recall Curve'))
 		if st.sidebar.button("Classify", key='classify'):
 			st.subheader("Decision Tree Results")
-			model = DecisionTreeClassifier()
+			model = DecisionTreeClassifier(max_depth=13)
 			model.fit(x_train, y_train)
 			accuracy = model.score(x_test, y_test)
 			y_pred = model.predict(x_test)
@@ -142,13 +147,37 @@ def main():
 			st.write("Precision: ", precision_score(y_test, y_pred, labels=class_names).round(2))
 			st.write("Recall: ", recall_score(y_test, y_pred, labels=class_names).round(2))
 			plot_metrics(metrics)
-
+	max_depths = np.linspace(1, 32, 32, endpoint=True)
 
 	st.sidebar.subheader('Hypothesis testing for Logistic Regression')
 	if st.sidebar.button('Test'):
 		logmodel=sm.GLM(df['Outcome'],sm.add_constant(df.drop(columns=['Outcome'])),family=sm.families.Binomial())
 		summary=logmodel.fit().summary()
 		print(summary)
+
+	if st.button('Check overfitting'):
+		train_results = []
+		test_results = []
+		for max_depth in max_depths:
+			dt = DecisionTreeClassifier(max_depth=max_depth)
+			dt.fit(x_train, y_train)
+			train_pred = dt.predict(x_train)
+			false_positive_rate, true_positive_rate, thresholds = roc_curve(y_train, train_pred)
+			roc_auc = auc(false_positive_rate, true_positive_rate)
+			train_results.append(roc_auc)
+			y_pred = dt.predict(x_test)
+			false_positive_rate, true_positive_rate, thresholds = roc_curve(y_test, y_pred)
+			roc_auc = auc(false_positive_rate, true_positive_rate)
+ 
+			test_results.append(roc_auc)
+		line1, = plt.plot(max_depths, train_results, 'b', label="Train AUC")
+		line2, = plt.plot(max_depths, test_results, 'r', label="Test AUC")
+		plt.legend(handler_map={line1: HandlerLine2D(numpoints=2)})
+		plt.ylabel('AUC score')
+		plt.xlabel('Tree depth')
+		plt.show()
+
+
 
 
 
